@@ -15,16 +15,21 @@ exports.parse = function (room, message, isIntro, spl) {
 	try {
 		exports.challenges = JSON.parse(message.substr(18));
 	} catch (e) {return;}
+	debug("Challenge Received MSG");
+	console.log(message);
 	if (exports.challenges.challengesFrom) {
 		for (var i in exports.challenges.challengesFrom) {
 			if (canChallenge(i, nBattles)) {
+				debug("I can accept a battle right now");
 				var format = exports.challenges.challengesFrom[i];
 
 				if (Settings.lockdown || !(format in Formats) || !Formats[format].chall) {
+					debug("Invalid Format!!!");
 					Bot.say('', '/reject ' + i);
 					continue;
 				}
 				if (Formats[format].team && !Features['battle'].TeamBuilder.hasTeam(format)) {
+					debug("I have no team for this format!");
 					Bot.say('', '/reject ' + i);
 					continue;
 				}

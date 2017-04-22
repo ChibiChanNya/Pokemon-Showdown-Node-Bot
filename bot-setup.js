@@ -33,7 +33,7 @@ function print (t) {
 }
 
 function generateConfigFile (opts, file) {
-	var lines = fs.readFileSync("./config-example.js").toString().split("\n");
+	var lines = fs.readFileSync("./config.js").toString().split("\n");
 	for (var i = 0; i < lines.length; i++) {
 		var line = lines[i];
 		if (line.indexOf("exports.server =") === 0) {

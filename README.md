@@ -41,7 +41,7 @@ $ npm install --production
 ```
 If you want to use `npm test` for developement, install all dependencies with `npm install`
 
-To configure your bot, copy `config-example.js` to `config.js` and edit that file. You can specify bot login credentials among other things. If you don't specify credentials, the bot will log in a random username started by 'Bot'. Read the [Configuration Guide](https://github.com/Ecuacion/Pokemon-Showdown-Node-Bot/blob/master/CONFIGGUIDE.md) for more information
+To configure your bot, copy `config.js` to `config.js` and edit that file. You can specify bot login credentials among other things. If you don't specify credentials, the bot will log in a random username started by 'Bot'. Read the [Configuration Guide](https://github.com/Ecuacion/Pokemon-Showdown-Node-Bot/blob/master/CONFIGGUIDE.md) for more information
 
 Now, to start the bot use:
 ```

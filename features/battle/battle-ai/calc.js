@@ -171,7 +171,7 @@ exports.getHazardsDamage = function (poke, conditions, gen, inverse) {
 */
 
 exports.calculate = function (pokeA, pokeB, move, conditionsA, conditionsB, gconditions, gen) {
-	if (!gen) gen = 6;
+	if (!gen) gen = 7;
 	if (!gconditions) gconditions = {};
 	if (!conditionsA) conditionsA = {};
 	if (!conditionsB) conditionsB = {};

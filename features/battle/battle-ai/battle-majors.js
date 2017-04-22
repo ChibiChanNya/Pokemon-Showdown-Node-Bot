@@ -18,14 +18,28 @@ module.exports = {
 
 	start: function (args, kwargs) {
 		this.started = true;
-		this.checkTimer();
+		// this.checkTimer();
 	},
 
 	turn: function (args, kwargs) {
+        debug("ARGS AND KWARGS");
+        console.log(args, kwargs);
+		debug("TURN BEGIN, Battle-Majors");
+        // console.log(new Error('Stack at point of...'))
 		this.turn = parseInt(args[1]) || 0;
-		this.checkTimer();
-		this.makeDecision();
+		// this.checkTimer();
+		this.makeDecision("FROM TURN");
 	},
+
+    upkeep: function (args, kwargs) {
+        debug("ARGS AND KWARGS");
+        console.log(args, kwargs);
+        debug("TURN BEGIN, Battle-Majors");
+        // console.log(new Error('Stack at point of...'))
+        // this.turn = parseInt(args[1]) || 0;
+        // this.checkTimer();en
+        this.makeDecision("FROM UPKEEP");
+    },
 
 	tier: function (args, kwargs) {
 		if (!args[1]) args[1] = '';
@@ -66,9 +80,10 @@ module.exports = {
 	},
 
 	inactive: function (args, kwargs) {
+		debug("INACTIVE WAS CALLED");
 		this.timer = true;
 		if (args[1]) {
-			if (args[1].indexOf("Battle timer is now ON") === 0 || args[1].indexOf("You have") === 0 || args[1].indexOf(Bot.status.nickName) >= 0) this.makeDecision();
+			if (args[1].indexOf("Battle timer is now ON") === 0 || args[1].indexOf("You have") === 0 || args[1].indexOf(Bot.status.nickName) >= 0) this.makeDecision("FROM INACTIVE");
 		}
 	},
 
@@ -148,7 +163,7 @@ module.exports = {
 	teampreview: function (args, kwargs) {
 		if (args[1]) this.teamPreview = parseInt(args[1]) || 1;
 		this.makeDecision();
-		this.checkTimer();
+		// this.checkTimer();
 	},
 
 	drag: "switch",
@@ -356,6 +371,6 @@ module.exports = {
 				}
 				break;
 		}
-		this.makeDecision(true);
+		this.makeDecision("FROM CALLBACK");
 	}
 };

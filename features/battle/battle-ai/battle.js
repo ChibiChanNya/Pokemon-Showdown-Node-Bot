@@ -73,7 +73,7 @@ var Battle = exports.Battle = (function () {
 
 	Battle.prototype.sendDecision = function (decision) {
 		if (!decision || !decision.length) return;
-		debug("Send Decision: ".cyan + JSON.stringify(decision));
+		debug("battle.js#Send Decision: ".cyan + JSON.stringify(decision));
 		var str = "/choose ";
 		for (var i = 0; i < decision.length; i++) {
 			switch (decision[i].type) {
@@ -179,7 +179,9 @@ var Battle = exports.Battle = (function () {
 	};
 
 	Battle.prototype.makeDecision = function (forced) {
+		console.log(forced);
 		if (!this.self) return; // Not playing
+		debug("battle.js#makeDecision   - START");
 		debug(this.id + "->MakeDecision");
 		if (!forced && this.lastSend.rqid >= 0 && this.lastSend.rqid === this.rqid) {
 			if (Date.now() - this.lastSend.time < MIN_TIME_LOCK) return;
@@ -190,10 +192,12 @@ var Battle = exports.Battle = (function () {
 		}
 		if (this.lock) return;
 		this.lock = true;
-		debug("Making decisions - " + this.id);
+		debug("Battle.js#makeDecision -  Making decisions - " + this.id);
 		var decisions, mod;
 		try {
 			decisions = decisionMaker.getDecisions(this);
+            // debug("DECISIONS");
+            // console.log(decisions);
 		} catch (e) {
 			debug(e.stack);
 			debug("Decision maker crashed: " + sys.inspect(e));
@@ -413,8 +417,26 @@ var Battle = exports.Battle = (function () {
 	Battle.prototype.getCalcRequestPokemon = function (sideId, forceMega) {
 		var p = this.request.side.pokemon[sideId];
 		var details = this.parseDetails(p.details);
+		// debug("Pokemon details");
+		/*
+		{
+		 "species": "Chimecho",
+		 "level": 77,
+		 "shiny": false,
+		 "gender": "F"
+		 }
+		 */
+		// debug(JSON.stringify(details,null,4));
 		var condition = this.parseStatus(p.condition);
-		var pokeA = new Calc.Pokemon(battleData.getPokemon(details.species, this.gen),
+        // debug("Pokemon condition");
+		/*
+		 {
+		 "hp": 100,
+		 "status": false
+		 }
+		 */
+        // debug( JSON.stringify(condition,null,4));
+        var pokeA = new Calc.Pokemon(battleData.getPokemon(details.species, this.gen),
 			{level: details.level, shiny: details.shiny, gender: details.gender});
 		pokeA.item = battleData.getItem(p.item, this.gen);
 		pokeA.ability = battleData.getAbility(p.baseAbility, this.gen);
@@ -428,6 +450,8 @@ var Battle = exports.Battle = (function () {
 				pokeA.ability = battleData.getAbility(pokeA.template.abilities[0]);
 			}
 		}
+		debug("battle.js#getCalcRequestPokemon - Finished processing pokemon:" + pokeA.name);
+		// debug( JSON.stringify(pokeA,null,4));
 		return pokeA;
 	};
 

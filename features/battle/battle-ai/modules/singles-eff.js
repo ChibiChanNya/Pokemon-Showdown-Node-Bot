@@ -8,6 +8,8 @@ exports.id = "singles-eff";
 var TypeChart = require('./../typechart.js');
 var Calc = require('./../calc.js');
 var Data = require('./../battle-data.js');
+var Smogon = require('./../smogon.js');
+
 
 var Pokemon = Calc.Pokemon;
 var Conditions = Calc.Conditions;
@@ -169,6 +171,7 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 		}
 		var move = Data.getMove(battle.request.side.pokemon[0].moves[des.moveId]);
 		if (move.category === "Status") res.total++;
+
 		if (move.flags && move.flags['reflectable'] && pokeB.ability && pokeB.ability.id === "magicbounce") {
 			res.unviable.push(decisions[i]);
 			continue;
@@ -560,8 +563,14 @@ var getViableDamageMoves = exports.getViableDamageMoves = function (battle, deci
 };
 
 function debugBestMove (bestSw, damageMoves, supportMoves) {
+	debug("singles-eff.js#debugBestMove -- start");
 	debug("Best switch: " + (bestSw ? bestSw[0].poke : "none"));
-	var tmp;
+    // debug("Damage Moves:");
+    // console.log(JSON.stringify(damageMoves,null,4));
+    // debug("Support Moves:");
+    // console.log(JSON.stringify(supportMoves,null,4));
+
+    var tmp;
 	for (var i in damageMoves) {
 		if (!damageMoves[i] || !damageMoves[i].length) continue;
 		tmp = [];
@@ -682,17 +691,34 @@ var getBestSwitch = exports.getBestSwitch = function (battle, decisions) {
 	return chosen;
 };
 
+//Download the entire team's common sets during TeamPreview
+var downloadTeam = function(team, battle){
+    debug("TEAM PREVIEW:");
+    console.log(JSON.stringify(team,null,4));
+	team.forEach(function(pokemon){
+		console.log("DOWNLOADING", pokemon.species);
+		Smogon.downloadSet(pokemon.species, "sm", setPredictions);
+	})
+};
+
+var setPredictions = function(set){
+	gg
+}
+
 /*
 * Swapper
 */
-
 exports.decide = function (battle, decisions) {
 	if (battle.gametype !== "singles") throw new Error("This module only works for singles gametype");
-	if (battle.request.forceSwitch) {
+
+    if (battle.request.forceSwitch) {
 		return getBestSwitch(battle, decisions);
 	} else if (battle.request.active) {
 		return getBestMove(battle, decisions);
-	} else {
+	} else if (battle.request.teamPreview) {
+        downloadTeam(battle.foe.teamPv, battle);
+        return decisions[Math.floor(Math.random() * decisions.length)];
+    } else {
 		return decisions[Math.floor(Math.random() * decisions.length)];
 	}
 };

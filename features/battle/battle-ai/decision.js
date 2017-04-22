@@ -120,6 +120,8 @@ function nextCombinationDecision (array, i, tables, solutions) {
 }
 
 function cartesianProduct (tables) {
+	// debug("LIST OF CHOCIES FOR CARTESIAN");
+	// console.log(JSON.stringify(tables,null,4));
 	var array = [];
 	var comb = [];
 	for (var i = 0; i < tables.length; i++) array.push(null);
@@ -128,11 +130,17 @@ function cartesianProduct (tables) {
 }
 
 exports.getDecisions = function (battle) {
+	debug("decision.js#getDecisions");
+	debug("Time to make a decision!");
+	// debug("This is gamestate");
+	// console.log( battle.request);
 	var res = [];
 	var req = battle.request;
+	console.log("REQ", req);
 	if (!req) return null;
 	if (req.wait) return null; // Nothing to do
 	if (req.teamPreview) {
+        debug("Must decide on Team Preview Selection");
 		/* Team required */
 		var n = 1;
 		if (battle.gametype === 'doubles') n = 2;
@@ -142,6 +150,7 @@ exports.getDecisions = function (battle) {
 			res.push([new TeamDecision(comb[i])]);
 		}
 	} else if (req.forceSwitch) {
+		debug("		Must decide on ForceSwitch");
 		var fw = req.forceSwitch;
 		var tables = [];
 		var toSw, canSw;
@@ -166,6 +175,7 @@ exports.getDecisions = function (battle) {
 		}
 		res = cartesianProduct(tables);
 	} else if (req.active) {
+		debug("		Must decide normal action");
 		var tables = [];
 		for (var i = 0; i < req.active.length; i++) {
 			tables.push([]);

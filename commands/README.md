@@ -1,4 +1,4 @@
-Bot Commands
+.Bot Commands
 ====================
 
 Bot commands are in files of this path. If you want to add more commands just add more files with the specifications mentioned in main README. Commands included in this repository are explained below.

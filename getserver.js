@@ -105,7 +105,7 @@ function writeConfig (server, port, serverid) {
 		if (answer in {'yes': 1, 'y': 1}) {
 			if (!fs.existsSync('./config.js')) {
 				console.log("config.js does not exist - creating one with default settings...");
-				fs.writeFileSync('./config.js', fs.readFileSync('./config-example.js'));
+				fs.writeFileSync('./config.js', fs.readFileSync('./config.js'));
 			}
 			var conf = fs.readFileSync('./config.js').toString().split('\n');
 			var status = {
