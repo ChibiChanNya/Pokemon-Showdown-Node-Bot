@@ -8,7 +8,6 @@ var client = request.createClient('http://smogon.com/');
 module.exports = {
     downloadSet: function (name, gen, callback) {
         var params = {"gen":gen,"alias":name.toLowerCase()};
-        console.log("checking for pokemon", params.alias, "in gen", params.gen);
         client.post('http://www.smogon.com/dex/_rpc/dump-pokemon', params, function (err, res, body) {
             // do stuff with body
             if (body && body.strategies.length > 0) {

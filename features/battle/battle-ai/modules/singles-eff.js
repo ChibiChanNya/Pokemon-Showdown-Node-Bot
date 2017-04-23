@@ -693,17 +693,23 @@ var getBestSwitch = exports.getBestSwitch = function (battle, decisions) {
 
 //Download the entire team's common sets during TeamPreview
 var downloadTeam = function(team, battle){
-    debug("TEAM PREVIEW:");
-    console.log(JSON.stringify(team,null,4));
+	debug("GAMESTATE!");
+    console.log(JSON.stringify(battle.foe ,null,4));
+
+    var setPredictions = function(set){
+        //find the pokmeon
+		var pokemon = battle.foe.pokemon[something];
+		pokemon.helpers.possibleMoves=[];
+		pokemon.helpers.possibleAbility=[];
+
+    };
+
 	team.forEach(function(pokemon){
-		console.log("DOWNLOADING", pokemon.species);
 		Smogon.downloadSet(pokemon.species, "sm", setPredictions);
 	})
 };
 
-var setPredictions = function(set){
-	gg
-}
+
 
 /*
 * Swapper
@@ -714,6 +720,10 @@ exports.decide = function (battle, decisions) {
     if (battle.request.forceSwitch) {
 		return getBestSwitch(battle, decisions);
 	} else if (battle.request.active) {
+    	//DEBUG CODE
+        debug("GAMESTATE!");
+        console.log(JSON.stringify(battle.foe ,null,4));
+        //END DEBUG CODE
 		return getBestMove(battle, decisions);
 	} else if (battle.request.teamPreview) {
         downloadTeam(battle.foe.teamPv, battle);
