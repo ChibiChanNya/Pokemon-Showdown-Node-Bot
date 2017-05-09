@@ -249,7 +249,7 @@ exports.decide = function (battle, decisions) {
 	}
 	var chosen = [];
 	for (var j = 0; j < dTable.length; j++) {
-		if (dTable[j].val === maxP && decisions[dTable[j].des])is
+		if (dTable[j].val === maxP && decisions[dTable[j].des])
 			chosen.push(decisions[dTable[j].des]);
 	}
 	debug("ingame-nostatus.js#decide - Decision has been made!, these are the options:", chosen);

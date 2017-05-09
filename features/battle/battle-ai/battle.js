@@ -450,7 +450,7 @@ var Battle = exports.Battle = (function () {
 				pokeA.ability = battleData.getAbility(pokeA.template.abilities[0]);
 			}
 		}
-		debug("battle.js#getCalcRequestPokemon - Finished processing pokemon:" + pokeA.name);
+		// debug("battle.js#getCalcRequestPokemon - Finished processing pokemon:" + pokeA.name);
 		// debug( JSON.stringify(pokeA,null,4));
 		return pokeA;
 	};

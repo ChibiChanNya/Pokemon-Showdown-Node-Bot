@@ -136,7 +136,13 @@ exports.getDecisions = function (battle) {
 	// console.log( battle.request);
 	var res = [];
 	var req = battle.request;
-	console.log("REQ", req);
+	// console.log("REQ", JSON.stringify(req,null,4));
+	// battle.self.pokemon=battle.request.side.pokemon;
+	// debug("MY ACTIVE");
+	// battle.self.pokemon.forEach(function(poke) {console.log(JSON.stringify(poke,null,4))});
+	// console.log(JSON.stringify(battle.self.active,null,4));
+    // debug("ENEMY MONS");
+    // console.log(battle.foe.pokemon);
 	if (!req) return null;
 	if (req.wait) return null; // Nothing to do
 	if (req.teamPreview) {

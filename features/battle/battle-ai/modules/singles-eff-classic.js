@@ -5,13 +5,10 @@
 
 exports.id = "singles-eff";
 
-var battleData = require("./../battle-data.js");
 var TypeChart = require('./../typechart.js');
 var Calc = require('./../calc.js');
 var Data = require('./../battle-data.js');
 var Smogon = require('./../smogon.js');
-var Move = battleData.Move;
-
 
 
 var Pokemon = Calc.Pokemon;
@@ -694,63 +691,9 @@ var getBestSwitch = exports.getBestSwitch = function (battle, decisions) {
 	return chosen;
 };
 
-//Download the entire team's common sets during TeamPreview
-var downloadTeam = function(team, battle){
-
-
-    var setPredictions = function(err, set, index){
-    	// console.log("INDEX IS", index);
-        //find the pokmeon
-        var pokemon = battle.foe.pokemon[index];
-        pokemon.helpers={};
-        pokemon.helpers.possibleMoves=set.moveslots;
-        pokemon.helpers.possibleAbility=set.abilities;
-        pokemon.helpers.possibleEVs = set.evconfigs;
-        pokemon.helpers.possibleNature = set.natures;
-        pokemon.helpers.possibleItem = set.items[0];
-        // debug("Finished Predicting");
-        // console.log(JSON.stringify(pokemon, null, 4));
-    };
-
-	team.forEach(function(pokemon, index){
-		Smogon.downloadSet(pokemon.species, "sm", setPredictions, index);
-	})
-};
-
-var getBestLead = function(battle, decisions){
-    debug("GET BEST LEAD - MY TEAM");
-};
-
-var getMyMoves= function (poke, move) {
-    if(move.length<=0){
-        return;
-    }
-    // var det = this.parsePokemonIdent(args[1]);
-
-    var moveTemplate = battleData.getMove(move, this.gen);
-    // var noDeductPP = true;
-
-    move = new Move(moveTemplate);
-    if (poke.transformed) move.pp = 5;
-    poke.moves.push(move);
-
-};
-
-var setStartingMoves = function(battle){
-    debug("REQUES!!!");
-    console.log(battle.request);
-    battle.request.side.pokemon.forEach(function(poke, index){
-        getMyMoves(battle.self.pokemon[index], poke.moves[0]);
-        getMyMoves(battle.self.pokemon[index], poke.moves[1]);
-        getMyMoves(battle.self.pokemon[index], poke.moves[2]);
-        getMyMoves(battle.self.pokemon[index], poke.moves[3]);
-    });
-    debug("Done Setting Moves!!!");
-    console.log(battle.self.pokemon);
-};
 
 /*
-* MUX
+* Swapper
 */
 exports.decide = function (battle, decisions) {
 	if (battle.gametype !== "singles") throw new Error("This module only works for singles gametype");
@@ -759,14 +702,11 @@ exports.decide = function (battle, decisions) {
 		return getBestSwitch(battle, decisions);
 	} else if (battle.request.active) {
     	//DEBUG CODE
-        // debug("GAMESTATE!");
-        // console.log(JSON.stringify(battle ,null,4));
+
         //END DEBUG CODE
 		return getBestMove(battle, decisions);
 	} else if (battle.request.teamPreview) {
-        downloadTeam(battle.foe.teamPv, battle);
-        setStartingMoves(battle);
-        getBestLead(battle, decisions);
+
         return decisions[Math.floor(Math.random() * decisions.length)];
     } else {
 		return decisions[Math.floor(Math.random() * decisions.length)];

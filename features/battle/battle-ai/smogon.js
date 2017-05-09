@@ -6,22 +6,22 @@ const request = require('request-json');
 var client = request.createClient('http://smogon.com/');
 //
 module.exports = {
-    downloadSet: function (name, gen, callback) {
+    downloadSet: function (name, gen, callback, index) {
         var params = {"gen":gen,"alias":name.toLowerCase()};
         client.post('http://www.smogon.com/dex/_rpc/dump-pokemon', params, function (err, res, body) {
             // do stuff with body
             if (body && body.strategies.length > 0) {
                 var movesets = body.strategies[0].movesets;
                 var set = movesets[Math.floor(Math.random() * movesets.length)];
-                callback(err, set);
+                callback(err, set,  index);
             }
             else {
                 if (params.gen === "xy") {
                     console.log("No set found!");
-                    callback(err, null);
+                    callback(err, null,  index);
                 }
                 else
-                    module.exports.downloadSet(name, "xy", callback);
+                    module.exports.downloadSet(name, "xy", callback, index);
             }
         });
     },

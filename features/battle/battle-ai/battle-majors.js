@@ -11,6 +11,9 @@ module.exports = {
 	},
 
 	request: function (args, kwargs) {
+        debug("RUNNING -Battle-Majors#REQUEST");
+        debug("ARGS AND KWARGS");
+        console.log(args, kwargs);
 		args.shift();
 		this.request = JSON.parse(args.join("|"));
 		this.rqid = this.request ? this.request.rqid : -1;
@@ -22,9 +25,9 @@ module.exports = {
 	},
 
 	turn: function (args, kwargs) {
+		debug("RUNNING -Battle-Majors#TURN");
         debug("ARGS AND KWARGS");
         console.log(args, kwargs);
-		debug("TURN BEGIN, Battle-Majors");
         // console.log(new Error('Stack at point of...'))
 		this.turn = parseInt(args[1]) || 0;
 		// this.checkTimer();
@@ -32,9 +35,9 @@ module.exports = {
 	},
 
     upkeep: function (args, kwargs) {
+        debug("RUNNING -Battle-Majors#UPKEEP");
         debug("ARGS AND KWARGS");
         console.log(args, kwargs);
-        debug("TURN BEGIN, Battle-Majors");
         // console.log(new Error('Stack at point of...'))
         // this.turn = parseInt(args[1]) || 0;
         // this.checkTimer();en
@@ -144,14 +147,23 @@ module.exports = {
 		}
 	},
 
+	//FILLS ENTIRE TEAM PREVIEW WITH THE MONS SEEN AT THE START
+	//RUNS ONCE DURING TEAM PREVIEW
 	poke: function (args, kwargs) {
-		var p = args[1];
+        debug("RUNNING -Battle-Majors#POKE");
+        debug("ARGS AND KWARGS");
+        console.log(args, kwargs);
+        var p = args[1];
 		if (!this.players[p]) return;
 		this.players[p].teamPv.push(this.parseDetails(args[2]));
+		addMon(this,[ 'add', args[1]+'a', args[2], '100/100' ] ,{})
 	},
 
 	detailschange: function (args, kwargs) {
-		var poke = this.getActive(args[1]);
+        debug("RUNNING -Battle-Majors#DETAILSCHANGE");
+        debug("ARGS AND KWARGS");
+        console.log(args, kwargs);
+        var poke = this.getActive(args[1]);
 		var details = this.parseDetails(args[2]);
 		poke.removeVolatile('formechange');
 		poke.removeVolatile('typeadd');
@@ -161,6 +173,9 @@ module.exports = {
 	},
 
 	teampreview: function (args, kwargs) {
+        debug("RUNNING -Battle-Majors#TEAM PREVIEW");
+        debug("ARGS AND KWARGS");
+        console.log(args, kwargs);
 		if (args[1]) this.teamPreview = parseInt(args[1]) || 1;
 		this.makeDecision();
 		// this.checkTimer();
@@ -169,6 +184,9 @@ module.exports = {
 	drag: "switch",
 	"replace": "switch",
 	"switch": function (args, kwargs) {
+        debug("RUNNING -Battle-Majors#SWITCH");
+        debug("ARGS AND KWARGS");
+        console.log(args, kwargs);
 		var spl = args[1].split(": ");
 		var p = spl[0].substr(0, 2);
 		var slot = this.parseSlot(spl[0].substr(2, 1));
@@ -177,10 +195,21 @@ module.exports = {
 		var health = this.parseStatus(args[3]);
 		/* Get the pokemon or create a new one */
 		var poke = null;
+		//Try to find by nickname
 		for (var i = 0; i < this.players[p].pokemon.length; i++) {
 			if (this.players[p].pokemon[i].name === name)
 				poke = this.players[p].pokemon[i];
 		}
+        //Didn't find by Nickname. Assign nickname after coincidence.
+		if(!poke){
+            for (var i = 0; i < this.players[p].pokemon.length; i++) {
+                if (this.players[p].pokemon[i].species === details.species){
+                    poke = this.players[p].pokemon[i];
+                    poke.name = name;
+                }
+            }
+        }
+        //Pokemon not in the list. Instance new one and Add to list.
 		if (!poke) {
 			poke = new battleData.Pokemon(battleData.getPokemon(details.species, this.gen), {name: name});
 			this.players[p].pokemon.push(poke);
@@ -241,6 +270,9 @@ module.exports = {
 	},
 
 	swap: function (args, kwargs) {
+        debug("RUNNING -Battle-Majors#SWAP");
+        debug("ARGS AND KWARGS");
+        console.log(args, kwargs);
 		var poke = this.parsePokemonIdent(args[1]);
 		var to = parseInt(args[2]) || 0;
 		var player = this.players[poke.side];
@@ -250,6 +282,9 @@ module.exports = {
 	},
 
 	move: function (args, kwargs) {
+        debug("RUNNING -Battle-Majors#MOVE");
+        debug("ARGS AND KWARGS");
+        console.log(args, kwargs);
 		var poke = this.getActive(args[1]);
 		var det = this.parsePokemonIdent(args[1]);
 		var poke2 = this.getActive(args[3]);
@@ -307,6 +342,9 @@ module.exports = {
 	},
 
 	cant: function (args, kwargs, isIntro) {
+        debug("RUNNING -Battle-Majors#CANT");
+        debug("ARGS AND KWARGS");
+        console.log(args, kwargs);
 		var poke = this.getActive(args[1]);
 		var effect = battleData.getEffect(args[2], this.gen);
 		var moveTemplate = battleData.getMove(args[3] || "", this.gen);
@@ -374,3 +412,23 @@ module.exports = {
 		this.makeDecision("FROM CALLBACK");
 	}
 };
+
+var addMon = function (battle, args, kwargs) {
+    debug("ADDING MON TO TEAM");
+    debug("ARGS AND KWARGS");
+    console.log(args, kwargs);
+    var spl = args[1].split(": ");
+    var p = spl[0].substr(0, 2);
+    var name = Tools.toName(spl[1]);
+    var details = battle.parseDetails(args[2]);
+    var health = battle.parseStatus(args[3]);
+	/* Get the pokemon or create a new one */
+    var poke = null;
+	poke = new battleData.Pokemon(battleData.getPokemon(details.species, battle.gen), {name: name});
+	battle.players[p].pokemon.push(poke);
+    for (var i in details) poke[i] = details[i];
+    poke.hp = health.hp;
+    poke.status = health.status;
+    poke.helpers.sw = battle.turn;
+};
+
