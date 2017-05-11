@@ -717,18 +717,88 @@ var downloadTeam = function(team, battle){
 	})
 };
 
+//Checks if the pokemon can set entry hazards
+var hasEntryHazards= function(pokemon){
+	var hazards=['stealthrock', 'spikes', 'toxicspikes', 'stickyweb'];
+
+    var yes = pokemon.moves.some(function (move) {
+        return hazards.includes(move.id);
+    });
+    return yes;
+};
+
+//Checks if the Pokemon has the ability to set up weather automatically
+var isWeatherSetter = function(pokemon){
+    var setters=['Vulpix', 'Ninetales', 'Groudon', 'Kyogre', 'Snover', 'Abomasnow', 'Tyranitar', 'Politoed', 'Pelipper', 'Torkoal', 'Hippopotas', 'Hippowdown','Gigalith'];
+    return (
+    	setters.includes(pokemon.species)
+	)
+};
+
+var isManualSetter =  function(pokemon){
+    var moves=['Rain Dance', 'Sunny Day', 'Sandstorm', 'Hail', 'Trick Room', 'Reflect', 'Light Screen'];
+    return pokemon.moves.some(function (move){
+        return moves.includes(move.name);
+    })
+};
+
+//Checks if the option has any tools to counter enemy lead
+var canCounterLead = function(pokemon){
+    var moves=['Taunt', 'Rapid Spin', 'Defog'];
+    // console.log(JSON.stringify(pokemon, null, 4));
+
+    return (
+    	pokemon.species ==="Sableye" ||
+		pokemon.species ==="Absol" ||
+    	pokemon.template.abilities['0']== "Magic Bounce" ||
+        pokemon.template.abilities['1']== "Magic Bounce" ||
+        pokemon.template.abilities['H']== "Magic Bounce" ||
+        pokemon.moves.some(function (move){
+            return moves.includes(move.name);
+        })
+    )
+};
+
 var getBestLead = function(battle, decisions){
     debug("GET BEST LEAD - MY TEAM");
+    var great=[];
+    var good =[];
+    var cool =[];
+    var ok=[];
+    var fail=[];
+    // debug("GAMESTATE!");
+    // console.log(JSON.stringify(battle.self.pokemon[0] ,null,4));
+	battle.self.pokemon.forEach(function(poke, index){
+		if(isWeatherSetter(poke)) great.push(index);
+        if(isManualSetter(poke)) cool.push(index);
+        else if(hasEntryHazards(poke)) good.push(index);
+        else if(canCounterLead(poke)) ok.push(index);
+        else fail.push(index);
+    });
+	debug("LEAD OPTIONS");
+    console.log(great,good,ok,fail);
+    if(great.length>0) {
+    	return decisions[great[Math.floor(Math.random() * great.length)]];
+	}
+    else if(good.length>0) {
+        return decisions[good[Math.floor(Math.random() * good.length)]];
+    }
+    else if(cool.length>0) {
+        return decisions[cool[Math.floor(Math.random() * cool.length)]];
+    }
+	else if(ok.length>0){
+		return decisions[ok[Math.floor(Math.random() * ok.length)]];
+	}
+	else
+		return decisions[Math.floor(Math.random() * decisions.length)];
 };
 
 var getMyMoves= function (poke, move) {
     if(move.length<=0){
         return;
     }
-    // var det = this.parsePokemonIdent(args[1]);
 
     var moveTemplate = battleData.getMove(move, this.gen);
-    // var noDeductPP = true;
 
     move = new Move(moveTemplate);
     if (poke.transformed) move.pp = 5;
@@ -737,16 +807,14 @@ var getMyMoves= function (poke, move) {
 };
 
 var setStartingMoves = function(battle){
-    debug("REQUES!!!");
-    console.log(battle.request);
+    // debug("REQUES!!!");
+    // console.log(battle.request);
     battle.request.side.pokemon.forEach(function(poke, index){
         getMyMoves(battle.self.pokemon[index], poke.moves[0]);
         getMyMoves(battle.self.pokemon[index], poke.moves[1]);
         getMyMoves(battle.self.pokemon[index], poke.moves[2]);
         getMyMoves(battle.self.pokemon[index], poke.moves[3]);
     });
-    debug("Done Setting Moves!!!");
-    console.log(battle.self.pokemon);
 };
 
 /*
@@ -766,8 +834,7 @@ exports.decide = function (battle, decisions) {
 	} else if (battle.request.teamPreview) {
         downloadTeam(battle.foe.teamPv, battle);
         setStartingMoves(battle);
-        getBestLead(battle, decisions);
-        return decisions[Math.floor(Math.random() * decisions.length)];
+        return getBestLead(battle, decisions);
     } else {
 		return decisions[Math.floor(Math.random() * decisions.length)];
 	}
