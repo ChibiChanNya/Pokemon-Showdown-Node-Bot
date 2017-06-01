@@ -697,19 +697,24 @@ var getBestSwitch = exports.getBestSwitch = function (battle, decisions) {
 //Download the entire team's common sets during TeamPreview
 var downloadTeam = function(team, battle){
 
-
     var setPredictions = function(err, set, index){
     	// console.log("INDEX IS", index);
         //find the pokmeon
         var pokemon = battle.foe.pokemon[index];
         pokemon.helpers={};
-        pokemon.helpers.possibleMoves=set.moveslots;
+        pokemon.helpers.possibleMoves=[];
+        set.moveslots.forEach(function (move){
+        	debug(move);
+        	var template= battleData.getMove(move.toString(), battle.gen);
+        	pokemon.helpers.possibleMoves.push(new Move(template))
+		});
+        // pokemon.helpers.possibleMoves=set.moveslots;
         pokemon.helpers.possibleAbility=set.abilities;
         pokemon.helpers.possibleEVs = set.evconfigs;
         pokemon.helpers.possibleNature = set.natures;
         pokemon.helpers.possibleItem = set.items[0];
-        // debug("Finished Predicting");
-        // console.log(JSON.stringify(pokemon, null, 4));
+        debug("Finished Predicting "+ pokemon.species);
+        console.log(JSON.stringify(pokemon.helpers, null, 4));
     };
 
 	team.forEach(function(pokemon, index){
@@ -728,7 +733,7 @@ var hasEntryHazards= function(pokemon){
 };
 
 //Checks if the Pokemon has the ability to set up weather automatically
-var isWeatherSetter = function(pokemon){
+var isWeatherSetter = function(pokemon, self){
     var setters=['Vulpix', 'Ninetales', 'Groudon', 'Kyogre', 'Snover', 'Abomasnow', 'Tyranitar', 'Politoed', 'Pelipper', 'Torkoal', 'Hippopotas', 'Hippowdown','Gigalith'];
     return (
     	setters.includes(pokemon.species)
@@ -743,7 +748,7 @@ var isManualSetter =  function(pokemon){
 };
 
 //Checks if the option has any tools to counter enemy lead
-var canCounterLead = function(pokemon){
+var canCounterHazards = function(pokemon){
     var moves=['Taunt', 'Rapid Spin', 'Defog'];
     // console.log(JSON.stringify(pokemon, null, 4));
 
@@ -772,11 +777,9 @@ var getBestLead = function(battle, decisions){
 		if(isWeatherSetter(poke)) great.push(index);
         if(isManualSetter(poke)) cool.push(index);
         else if(hasEntryHazards(poke)) good.push(index);
-        else if(canCounterLead(poke)) ok.push(index);
+        else if(canCounterHazards(poke)) ok.push(index);
         else fail.push(index);
     });
-	debug("LEAD OPTIONS");
-    console.log(great,good,ok,fail);
     if(great.length>0) {
     	return decisions[great[Math.floor(Math.random() * great.length)]];
 	}
