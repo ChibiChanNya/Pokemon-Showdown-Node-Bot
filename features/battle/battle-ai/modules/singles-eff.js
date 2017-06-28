@@ -19,16 +19,48 @@ var Conditions = Calc.Conditions;
 
 function suposeActiveFoe (battle) {
 	var target = battle.foe.active[0];
+	debug("SUPPOSING POKEMON");
+	console.log(JSON.stringify(target,null,4));
+	var moves=target.moves;
+	if(moves.length<4 && target.helpers.possibleMoves){
+		for(var i=0;moves.length<4-moves.length;i++){
+			moves.push(target.helpers.possibleMoves[i]);
+		}
+	}
+	var ability = target.ability;
+	if(ability==='&unknown' && target.helpers.possibleAbility){
+		ability=target.helpers.possibleAbility[0] || "&unknown";
+	}
+	var evs=[];
+	if(target.helpers.possibleEVs){
+		evs=target.helpers.possibleEVs[0];
+	}
+
+	var nature= "&unknown";
+	if(target.helpers.possibleNature){
+		nature=target.helpers.possibleNature[0];
+	}
 	var pokeB = new Pokemon(target.template, {
 		level: target.level,
 		gender: target.gender,
 		shiny: target.shiny,
-		evs: {}
+		evs: evs,
+		moves: moves,
+		nature: nature,
+		ability: ability,
+
 	});
+
+    console.log(JSON.stringify(pokeB,null,4));
+
 	pokeB.hp = target.hp;
 	pokeB.status = target.status;
 	if (target.item === "&unknown") {
-		pokeB.item = null;
+		if(target.helpers.possibleItem){
+			pokeB.item= target.helpers.possibleItem;
+		}
+		else
+			pokeB.item = null;
 	} else {
 		pokeB.item = target.item;
 	}
@@ -150,6 +182,7 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 	var res = {
 		viable: [],
 		unviable: [],
+		recommended: [],
 		sleepTalk: null,
 		total: 0
 	};
@@ -179,8 +212,8 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 			res.unviable.push(decisions[i]);
 			continue;
 		}
-		if (conditionsB.volatiles["substitute"] && move.target !== "self" && move.target !== "allySide" && move.target !== "foeSide" && move.target !== "allyTeam") {
-			if (!move.flags || !move.flags['authentic']) {
+		if (pokeA.ability.id !== 'infiltrator' && conditionsB.volatiles["substitute"] && move.target !== "self" && move.target !== "allySide" && move.target !== "foeSide" && move.target !== "allyTeam") {
+			if (!move.flags || !move.flags['authentic'] ) {
 				res.unviable.push(decisions[i]);
 				continue;
 			}
@@ -203,19 +236,19 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 		}
 		switch (move.id) {
 			case "spikes":
-				if (foeCanSwitch(battle) && conditionsB.side["spikes"] !== 3) res.viable.push(decisions[i]);
+				if (foeCanSwitch(battle) && conditionsB.side["spikes"] !== 3) res.orecommended.push(decisions[i]);
 				else res.unviable.push(decisions[i]);
 				continue;
 			case "toxicspikes":
-				if (foeCanSwitch(battle) && conditionsB.side["toxicspikes"] !== 2) res.viable.push(decisions[i]);
+				if (foeCanSwitch(battle) && conditionsB.side["toxicspikes"] !== 2) res.recommended.push(decisions[i]);
 				else res.unviable.push(decisions[i]);
 				continue;
 			case "stealthrock":
-				if (foeCanSwitch(battle) && !conditionsB.side["stealthrock"]) res.viable.push(decisions[i]);
+				if (foeCanSwitch(battle) && !conditionsB.side["stealthrock"]) res.recommended.push(decisions[i]);
 				else res.unviable.push(decisions[i]);
 				continue;
 			case "stickyweb":
-				if (foeCanSwitch(battle) && !conditionsB.side["stickyweb"]) res.viable.push(decisions[i]);
+				if (foeCanSwitch(battle) && !conditionsB.side["stickyweb"]) res.recommended.push(decisions[i]);
 				else res.unviable.push(decisions[i]);
 				continue;
 			case "wish":
@@ -227,7 +260,7 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 					if (Calc.calculate(pokeA, pokeB, move, conditionsA, conditionsB, battle.conditions, battle.gen).getMax() === 0) {
 						res.unviable.push(decisions[i]);
 					} else {
-						res.viable.push(decisions[i]);
+						res.recommended.push(decisions[i]);
 					}
 				} else {
 					res.unviable.push(decisions[i]);
@@ -240,7 +273,7 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 					continue;
 				}
 				if (selfCanSwitch(battle) && (conditionsA.side["spikes"] || conditionsA.side["toxicspikes"] || conditionsA.side["stealthrock"] || conditionsA.side["stickyweb"])) {
-					res.viable.push(decisions[i]);
+					res.recommended.push(decisions[i]);
 				} else {
 					res.unviable.push(decisions[i]);
 				}
@@ -250,7 +283,7 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 					if (typeof battle.self.active[0].helpers.sleepCounter === "number") {
 						if (battle.self.active[0].helpers.sleepCounter < 2) res.sleepTalk = decisions[i];
 					}
-					res.viable.push(decisions[i]);
+					res.recommended.push(decisions[i]);
 				} else {
 					res.unviable.push(decisions[i]);
 				}
@@ -261,7 +294,7 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 				continue;
 			case "leechseed":
 				if (!conditionsB.volatiles["leechseed"] && pokeB.template.types.indexOf("Grass") < 0) res.viable.push(decisions[i]);
-				else res.unviable.push(decisions[i]);
+				else res.recommended.push(decisions[i]);
 				continue;
 			case "endeavor":
 			case "painsplit":
@@ -277,7 +310,8 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 				else if (!pokeA.item) res.unviable.push(decisions[i]);
 				continue;
 			case "destinybond":
-				res.viable.push(decisions[i]);
+                if(battle.self.active[0].helpers.lastMove !== "destinybond")
+					res.viable.push(decisions[i]);
 				continue;
 			case "disable":
 			case "encore":
@@ -288,7 +322,8 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 				}
 				continue;
 			case "attract":
-				if (!conditionsB.volatiles[move.volatileStatus] && (pokeA.gender === "M" || pokeA.gender === "F") && (pokeB.gender === "M" || pokeB.gender === "F") && (pokeA.gender !== pokeB.gender)) {
+				if (!conditionsB.volatiles[move.volatileStatus] && pokeB.ability.id !== "oblivious"
+					&& (pokeA.gender === "M" || pokeA.gender === "F") && (pokeB.gender === "M" || pokeB.gender === "F") && (pokeA.gender !== pokeB.gender)) {
 					res.viable.push(decisions[i]);
 				} else {
 					res.unviable.push(decisions[i]);
@@ -374,6 +409,7 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 		var singleTurnMoves = {"protect": 1, "detect": 1, "endure": 1, "kingsshield": 1, "quickguard": 1, "spikyshield": 1, "wideguard": 1};
 		if (move.id in singleTurnMoves) {
 			if (battle.self.active[0].helpers.lastMove in singleTurnMoves) res.unviable.push(decisions[i]);
+			else if (pokeA.hp <=70 && battle.self.active[0].helpers.lastMove === 'wish') res.recommended.push(decisions[i]);
 			else res.viable.push(decisions[i]);
 			continue;
 		}
@@ -388,7 +424,10 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 			for (var j in conditionsB.boosts)
 				if (conditionsB.boosts[j] > 0) boostsHaze++;
 			if (boostsHaze) {
-				res.viable.push(decisions[i]);
+				if(conditionsB.volatiles["substitute"]){
+                    res.recommended.push(decisions[i]);
+				}
+				else res.viable.push(decisions[i]);
 			} else {
 				res.unviable.push(decisions[i]);
 			}
@@ -489,7 +528,7 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 			continue;
 		}
 		if (move.id === 'metronome') {
-			res.viable.push(decisions[i]);
+			res.unviable.push(decisions[i]);
 			continue;
 		}
 		res.unviable.push(decisions[i]);
@@ -625,7 +664,9 @@ var getBestMove = exports.getBestMove = function (battle, decisions) {
 	if (damageMoves.ohko.length) {
 		if (supportMoves.sleepTalk) return supportMoves.sleepTalk;
 		return damageMoves.ohko[Math.floor(Math.random() * damageMoves.ohko.length)];
-	} else if (damageMoves.thko.length) {
+	} else if(supportMoves.recommended.length){
+        return supportMoves.recommended[Math.floor(Math.random() * supportMoves.recommended.length)];
+    } else if (damageMoves.thko.length) {
 		if (supportMoves.sleepTalk) return supportMoves.sleepTalk;
 		if (supportMoves.viable.length && (Math.random() * 100) > 50) {
 			return supportMoves.viable[Math.floor(Math.random() * supportMoves.viable.length)];
@@ -705,6 +746,8 @@ var downloadTeam = function(team, battle){
         pokemon.helpers.possibleMoves=[];
         set.moveslots.forEach(function (move){
         	debug(move);
+        	var moves = move.toString().split(',');
+        	move= moves[Math.floor(Math.random() * moves.length)];
         	var template= battleData.getMove(move.toString(), battle.gen);
         	pokemon.helpers.possibleMoves.push(new Move(template))
 		});

@@ -261,7 +261,8 @@ exports.Pokemon = (function () {
 		this.baseAbility = "&unknown";
 		this.abilityStack = [];
 
-		this.moves = [];
+
+        this.moves = [];
 
 		this.active = false;
 		this.slot = -1;
