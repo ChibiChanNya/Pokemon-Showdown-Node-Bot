@@ -53,6 +53,7 @@ var Pokemon = exports.Pokemon = (function () {
 		if (!gen) gen = 6;
 		var stats = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 		var res = {};
+		var nature= getNatureStats(this.nature);
 		for (var i = 0; i < stats.length; i++) {
 			if (this.stats[stats[i]]) {
 				res[stats[i]] = this.stats[stats[i]];
@@ -66,9 +67,9 @@ var Pokemon = exports.Pokemon = (function () {
 				}
 			} else {
 				if (stats[i] === 'hp') {
-					res[stats[i]] = Math.floor((2 * this.getBaseStat(stats[i]) + this.getIV(stats[i]) + this.getEV(stats[i])) * this.level / 100 + this.level + 10);
+					res[stats[i]] = Math.floor((((2 * this.getBaseStat(stats[i]) + this.getIV(stats[i])) + (this.getEV(stats[i])/4)) * this.level / 100) + this.level + 10);
 				} else {
-					res[stats[i]] = Math.floor(Math.floor((2 * this.getBaseStat(stats[i]) + this.getIV(stats[i]) + this.getEV(stats[i])) * this.level / 100 + 5) * (this.nature ? (this.nature.value || 1) : 1));
+					res[stats[i]] = Math.floor(Math.floor((((2 * this.getBaseStat(stats[i]) + this.getIV(stats[i])) + (this.getEV(stats[i])/4)) * this.level / 100) + 5) * (this.nature ? (nature[stats[i]]|| 1) : 1));
 				}
 			}
 		}
@@ -77,6 +78,7 @@ var Pokemon = exports.Pokemon = (function () {
 
 	return Pokemon;
 })();
+
 
 var Conditions = exports.Conditions = (function () {
 	function Conditions (data) {
@@ -170,6 +172,89 @@ exports.getHazardsDamage = function (poke, conditions, gen, inverse) {
  *  - gen (6 by default)
 */
 
+var getNatureStats = function(nature){
+
+
+    var values= function(up,down){
+    	var res=[];
+    	res[up]=1.1;
+    	res[down]=0.9;
+		return res;
+	};
+
+	switch(nature){
+		case "Hardy":
+		case "Docile":
+		case "Serious":
+		case "Bashful":
+		case "Quirky":
+			return {};
+			break;
+		case "Lonely":
+			return values("atk", "def");
+				break;
+		case "Brave":
+			return values("atk", "spe");
+			break;
+		case "Adamant":
+			return values("atk", "spa");
+			break;
+		case "Naughty":
+			return values("atk", "spd");
+			break;
+		case "Bold":
+			return values("def", "atk");
+			break;
+		case "Relaxed":
+			return values("def", "spe");
+			break;
+        case "Impish":
+            return values("def", "spa");
+            break;
+        case "Lax":
+            return values("def", "spd");
+            break;
+        case "Timid":
+            return values("spe", "atk");
+            break;
+        case "Hasty":
+            return values("spe", "def");
+            break;
+        case "Jolly":
+            return values("spe", "spa");
+            break;
+        case "Naive":
+            return values("spe", "spd");
+            break;
+        case "Modest":
+            return values("spa", "atk");
+            break;
+        case "Mild":
+            return values("spa", "def");
+            break;
+        case "Quiet":
+            return values("spa", "spe");
+            break;
+        case "Rash":
+            return values("spa", "spd");
+            break;
+        case "Calm":
+            return values("spd", "atk");
+            break;
+        case "Gentle":
+            return values("spd", "def");
+            break;
+        case "Sassy":
+            return values("spd", "spe");
+            break;
+        case "Careful":
+            return values("spd", "spa");
+            break;
+	}
+    var stats = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+
+};
+
 exports.calculate = function (pokeA, pokeB, move, conditionsA, conditionsB, gconditions, gen) {
 	if (!gen) gen = 7;
 	if (!gconditions) gconditions = {};
@@ -177,6 +262,7 @@ exports.calculate = function (pokeA, pokeB, move, conditionsA, conditionsB, gcon
 	if (!conditionsB) conditionsB = {};
 
 	var statsA = pokeA.getStats(gen), statsB = pokeB.getStats(gen);
+	console.log("STATS ENEMY", statsB);
 
 	var atk, def, bp, atkStat, defStat;
 	var cat, defcat;
@@ -507,6 +593,11 @@ exports.calculate = function (pokeA, pokeB, move, conditionsA, conditionsB, gcon
 			case "airballoon":
 				if (moveType === "Ground") bp = 0;
 				break;
+            case "eviolite":
+                if (pokeB.evos){
+                	def= Math.floor(def * 1.5);
+				}
+                break;
 		}
 	}
 

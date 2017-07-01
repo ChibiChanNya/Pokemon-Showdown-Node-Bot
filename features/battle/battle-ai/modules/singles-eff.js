@@ -20,7 +20,6 @@ var Conditions = Calc.Conditions;
 function suposeActiveFoe (battle) {
 	var target = battle.foe.active[0];
 	debug("SUPPOSING POKEMON");
-	console.log(JSON.stringify(target,null,4));
 	var moves=target.moves;
 	if(moves.length<4 && target.helpers.possibleMoves){
 		for(var i=0;moves.length<4-moves.length;i++){
@@ -51,7 +50,7 @@ function suposeActiveFoe (battle) {
 
 	});
 
-    console.log(JSON.stringify(pokeB,null,4));
+    // console.log("SUPPOSE RESULT", JSON.stringify(pokeB,null,4));
 
 	pokeB.hp = target.hp;
 	pokeB.status = target.status;
