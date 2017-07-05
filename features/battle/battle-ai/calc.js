@@ -69,7 +69,7 @@ var Pokemon = exports.Pokemon = (function () {
 				if (stats[i] === 'hp') {
 					res[stats[i]] = Math.floor((((2 * this.getBaseStat(stats[i]) + this.getIV(stats[i])) + (this.getEV(stats[i])/4)) * this.level / 100) + this.level + 10);
 				} else {
-					res[stats[i]] = Math.floor(Math.floor((((2 * this.getBaseStat(stats[i]) + this.getIV(stats[i])) + (this.getEV(stats[i])/4)) * this.level / 100) + 5) * (this.nature ? (nature[stats[i]]|| 1) : 1));
+					res[stats[i]] = Math.floor(Math.floor((((2 * this.getBaseStat(stats[i]) + this.getIV(stats[i])) + (this.getEV(stats[i])/4)) * this.level / 100) + 5) * (nature ? (nature[stats[i]]|| 1) : 1));
 				}
 			}
 		}
@@ -262,7 +262,7 @@ exports.calculate = function (pokeA, pokeB, move, conditionsA, conditionsB, gcon
 	if (!conditionsB) conditionsB = {};
 
 	var statsA = pokeA.getStats(gen), statsB = pokeB.getStats(gen);
-	console.log("STATS ENEMY", statsB);
+	// console.log("STATS ENEMY", statsB);
 
 	var atk, def, bp, atkStat, defStat;
 	var cat, defcat;
@@ -283,10 +283,10 @@ exports.calculate = function (pokeA, pokeB, move, conditionsA, conditionsB, gcon
 		cat = defcat = move.category;
 		if (move.defensiveCategory) defcat = move.defensiveCategory;
 		if (defcat === "Special") {
-			def = statsA.spd;
+			def = statsB.spd;
 			defStat = "spd";
 		} else {
-			def = statsA.def;
+			def = statsB.def;
 			defStat = "def";
 		}
 	} else {
@@ -302,10 +302,10 @@ exports.calculate = function (pokeA, pokeB, move, conditionsA, conditionsB, gcon
 		}
 		if (move.defensiveCategory) defcat = move.defensiveCategory;
 		if (defcat === "Special") {
-			def = statsA.spd;
+			def = statsB.spd;
 			defStat = "spd";
 		} else {
-			def = statsA.def;
+			def = statsB.def;
 			defStat = "def";
 		}
 	}
@@ -313,6 +313,7 @@ exports.calculate = function (pokeA, pokeB, move, conditionsA, conditionsB, gcon
 	if (atkStat === "atk" && pokeA.status === "brn") {
 		if (gen < 3 || !pokeA.ability || pokeA.ability.id !== "guts") atk = Math.floor(atk * 0.5);
 	}
+
 
 	/******************************
 	* Inmunity (0 damage)

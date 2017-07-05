@@ -21,8 +21,9 @@ function suposeActiveFoe (battle) {
 	var target = battle.foe.active[0];
 	debug("SUPPOSING POKEMON");
 	var moves=target.moves;
-	if(moves.length<4 && target.helpers.possibleMoves){
-		for(var i=0;moves.length<4-moves.length;i++){
+	var length = moves.length;
+	if(length<4 && target.helpers.possibleMoves){
+		for(var i=0;i<4-length;i++){
 			moves.push(target.helpers.possibleMoves[i]);
 		}
 	}
@@ -44,14 +45,13 @@ function suposeActiveFoe (battle) {
 		gender: target.gender,
 		shiny: target.shiny,
 		evs: evs,
-		moves: moves,
 		nature: nature,
-		ability: ability,
-
+		ability: ability
 	});
 
     // console.log("SUPPOSE RESULT", JSON.stringify(pokeB,null,4));
 
+    pokeB.moves = moves;
 	pokeB.hp = target.hp;
 	pokeB.status = target.status;
 	if (target.item === "&unknown") {
@@ -70,6 +70,7 @@ function suposeActiveFoe (battle) {
 			pokeB.ability = target.ability;
 		}
 	}
+	
 	return pokeB;
 }
 
@@ -77,6 +78,10 @@ function evaluatePokemon (battle, sideId, noMega) {
 	if (!battle.foe.active[0] || battle.foe.active[0].fainted) return {t: 0, d: 0};
 	var pokeA = battle.getCalcRequestPokemon(sideId, !noMega);
 	var pokeB = suposeActiveFoe(battle);
+    var stats  = pokeB.getStats(battle.gen);
+    battle.foe.active[0].stats= stats;
+    pokeB.stats=stats;
+	// debug("Pokemon Stats!");
 	var res = {t: 0, d: 0};
 	var conditionsA, conditionsB;
 	var t = 0;
@@ -535,11 +540,80 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 	return res;
 };
 
+
+var getEnemyDamageMoves = exports.getEnemyDamageMoves = function (battle) {
+    var res = {
+        ohko: [], // +90% -> replace status moves
+        thko: [], // +50% -> No switch
+        meh: [], // +30% -> switch only if better types
+        bad: [], // 0-29 -> better types or same types and better damage
+        immune: [],
+        total: 0
+    };
+    var sideId = 0; // Active, singles
+    var pokeA = battle.getCalcRequestPokemon(sideId, true);
+    var pokeB = suposeActiveFoe(battle);
+    var conditionsB = new Conditions({
+        side: battle.foe.side,
+        volatiles: battle.foe.active[0].volatiles,
+        boosts: battle.foe.active[0].boosts
+    });
+    var conditionsA = new Conditions({
+        side: battle.self.side,
+        volatiles: battle.self.active[0].volatiles,
+        boosts: battle.self.active[0].boosts
+    });
+    for (var i = 0; i < decisions.length; i++) {
+        var des = decisions[i][0];
+        if (des.type !== "move") continue; // not a move
+        if (battle.request.active[0].canMegaEvo || battle.request.side.pokemon[0].canMegaEvo) {
+            if (!des.mega) continue; // Mega evolve by default
+        }
+        var move = Data.getMove(battle.request.side.pokemon[0].moves[des.moveId]);
+        if (move.category !== "Physical" && move.category !== "Special") continue; // Status move
+        var dmg = Calc.calculate(pokeA, pokeB, move, conditionsA, conditionsB, battle.conditions, battle.gen).getMax();
+        var hp = pokeB.hp;
+        if (dmg === 0 || move.id === "struggle") {
+            res.immune.push(decisions[i]);
+            continue;
+        }
+        var pc = dmg * 100 / hp;
+        debug("Move: " + move.name + " | Damage = " + dmg + " | Percent: " + pc);
+        if (move.id === "fakeout") {
+            if (battle.self.active[0].helpers.sw === battle.turn || battle.self.active[0].helpers.sw === battle.turn - 1) {
+                if (TypeChart.getMultipleEff("Normal", pokeB.template.types, battle.gen, true, !!battle.conditions["inversebattle"]) >= 1) {
+                    if (pc >= 90) {
+                        res.ohko.push(decisions[i]);
+                    } else {
+                        res.thko.push(decisions[i]);
+                    }
+                    res.total++;
+                    continue;
+                }
+            } else {
+                res.immune.push(decisions[i]);
+                continue;
+            }
+        }
+        res.total++;
+        if (pc >= 100) {
+            res.ohko.push(decisions[i]);
+        } else if (pc >= 50) {
+            res.thko.push(decisions[i]);
+        } else if (pc >= 30) {
+            res.meh.push(decisions[i]);
+        } else {
+            res.bad.push(decisions[i]);
+        }
+    }
+    return res;
+};
+
 var getViableDamageMoves = exports.getViableDamageMoves = function (battle, decisions) {
 	var res = {
 		ohko: [], // +90% -> replace status moves
 		thko: [], // +50% -> No switch
-		meh: [], // +30% -> shitch only if better types
+		meh: [], // +30% -> switch only if better types
 		bad: [], // 0-29 -> better types or same types and better damage
 		immune: [],
 		total: 0
@@ -628,12 +702,16 @@ function debugBestMove (bestSw, damageMoves, supportMoves) {
 		}
 		debug("Support Moves (" + i + ") -> " + tmp);
 	}
+
 }
 
 var getBestMove = exports.getBestMove = function (battle, decisions) {
 	var bestSW = exports.getBestSwitch(battle, decisions);
+	/** IMPROVE DECISION LOGIC HERE */
+	// var faster=
 	var damageMoves = getViableDamageMoves(battle, decisions);
 	var supportMoves = getViableSupportMoves(battle, decisions);
+	//get enemy damage moves
 
 	var ev = evaluatePokemon(battle, 0);
 	var evNoMega = evaluatePokemon(battle, 0, true);
@@ -755,8 +833,8 @@ var downloadTeam = function(team, battle){
         pokemon.helpers.possibleEVs = set.evconfigs;
         pokemon.helpers.possibleNature = set.natures;
         pokemon.helpers.possibleItem = set.items[0];
-        debug("Finished Predicting "+ pokemon.species);
-        console.log(JSON.stringify(pokemon.helpers, null, 4));
+        // debug("Finished Predicting "+ pokemon.species);
+        // console.log(JSON.stringify(pokemon.helpers, null, 4));
     };
 
 	team.forEach(function(pokemon, index){
