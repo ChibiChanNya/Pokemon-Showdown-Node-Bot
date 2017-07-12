@@ -14,7 +14,7 @@ var Smogon = require('./../smogon.js');
 var Pokemon = Calc.Pokemon;
 var Conditions = Calc.Conditions;
 
-function suposeActiveFoe (battle) {
+function supposeActiveFoe (battle) {
 	var target = battle.foe.active[0];
 	var pokeB = new Pokemon(target.template, {
 		level: target.level,
@@ -42,7 +42,7 @@ function suposeActiveFoe (battle) {
 function evaluatePokemon (battle, sideId, noMega) {
 	if (!battle.foe.active[0] || battle.foe.active[0].fainted) return {t: 0, d: 0};
 	var pokeA = battle.getCalcRequestPokemon(sideId, !noMega);
-	var pokeB = suposeActiveFoe(battle);
+	var pokeB = supposeActiveFoe(battle);
 	var res = {t: 0, d: 0};
 	var conditionsA, conditionsB;
 	var t = 0;
@@ -152,7 +152,7 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 	};
 	var sideId = 0; // Active, singles
 	var pokeA = battle.getCalcRequestPokemon(sideId, true);
-	var pokeB = suposeActiveFoe(battle);
+	var pokeB = supposeActiveFoe(battle);
 	var conditionsB = new Conditions({
 		side: battle.foe.side,
 		volatiles: battle.foe.active[0].volatiles,
@@ -505,7 +505,7 @@ var getViableDamageMoves = exports.getViableDamageMoves = function (battle, deci
 	};
 	var sideId = 0; // Active, singles
 	var pokeA = battle.getCalcRequestPokemon(sideId, true);
-	var pokeB = suposeActiveFoe(battle);
+	var pokeB = supposeActiveFoe(battle);
 	var conditionsB = new Conditions({
 		side: battle.foe.side,
 		volatiles: battle.foe.active[0].volatiles,

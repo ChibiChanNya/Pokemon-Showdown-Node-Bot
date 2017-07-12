@@ -17,7 +17,7 @@ var Move = battleData.Move;
 var Pokemon = Calc.Pokemon;
 var Conditions = Calc.Conditions;
 
-function suposeActiveFoe (battle) {
+function supposeActiveFoe (battle) {
 	var target = battle.foe.active[0];
 	debug("SUPPOSING POKEMON");
 	var moves=target.moves;
@@ -63,6 +63,8 @@ function suposeActiveFoe (battle) {
 	} else {
 		pokeB.item = target.item;
 	}
+	pokeB.stats = pokeB.getStats();
+
 	if (!target.supressedAbility) {
 		if (target.ability === "&unknown") {
 			pokeB.ability = pokeB.template.abilities ? Data.getAbility(pokeB.template.abilities[0]) : null;
@@ -70,14 +72,14 @@ function suposeActiveFoe (battle) {
 			pokeB.ability = target.ability;
 		}
 	}
-	
+
 	return pokeB;
 }
 
 function evaluatePokemon (battle, sideId, noMega) {
 	if (!battle.foe.active[0] || battle.foe.active[0].fainted) return {t: 0, d: 0};
 	var pokeA = battle.getCalcRequestPokemon(sideId, !noMega);
-	var pokeB = suposeActiveFoe(battle);
+	var pokeB = supposeActiveFoe(battle);
     var stats  = pokeB.getStats(battle.gen);
     battle.foe.active[0].stats= stats;
     pokeB.stats=stats;
@@ -182,7 +184,7 @@ function alreadyOppSleeping (battle) {
 	return false;
 }
 
-var getViableSupportMoves = exports.getViableSupportMoves = function (battle, decisions) {
+var getViableSupportMoves = exports.getViableSupportMoves = function (battle, decisions, pokeA, pokeB) {
 	var res = {
 		viable: [],
 		unviable: [],
@@ -190,9 +192,6 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 		sleepTalk: null,
 		total: 0
 	};
-	var sideId = 0; // Active, singles
-	var pokeA = battle.getCalcRequestPokemon(sideId, true);
-	var pokeB = suposeActiveFoe(battle);
 	var conditionsB = new Conditions({
 		side: battle.foe.side,
 		volatiles: battle.foe.active[0].volatiles,
@@ -541,7 +540,7 @@ var getViableSupportMoves = exports.getViableSupportMoves = function (battle, de
 };
 
 
-var getEnemyDamageMoves = exports.getEnemyDamageMoves = function (battle) {
+var getEnemyDamageMoves = exports.getEnemyDamageMoves = function (battle, pokeA, pokeB) {
     var res = {
         ohko: [], // +90% -> replace status moves
         thko: [], // +50% -> No switch
@@ -550,9 +549,7 @@ var getEnemyDamageMoves = exports.getEnemyDamageMoves = function (battle) {
         immune: [],
         total: 0
     };
-    var sideId = 0; // Active, singles
-    var pokeA = battle.getCalcRequestPokemon(sideId, true);
-    var pokeB = suposeActiveFoe(battle);
+
     var conditionsB = new Conditions({
         side: battle.foe.side,
         volatiles: battle.foe.active[0].volatiles,
@@ -563,53 +560,53 @@ var getEnemyDamageMoves = exports.getEnemyDamageMoves = function (battle) {
         volatiles: battle.self.active[0].volatiles,
         boosts: battle.self.active[0].boosts
     });
-    for (var i = 0; i < decisions.length; i++) {
-        var des = decisions[i][0];
-        if (des.type !== "move") continue; // not a move
-        if (battle.request.active[0].canMegaEvo || battle.request.side.pokemon[0].canMegaEvo) {
-            if (!des.mega) continue; // Mega evolve by default
-        }
-        var move = Data.getMove(battle.request.side.pokemon[0].moves[des.moveId]);
+    for (var i = 0; i < pokeB.moves.length; i++) {
+        var des = pokeB.moves[i];
+        // if (battle.request.active[0].canMegaEvo || battle.request.side.pokemon[0].canMegaEvo) {
+        //     if (!des.mega) continue; // Mega evolve by default
+        // }
+        var move = Data.getMove(des.id);
         if (move.category !== "Physical" && move.category !== "Special") continue; // Status move
-        var dmg = Calc.calculate(pokeA, pokeB, move, conditionsA, conditionsB, battle.conditions, battle.gen).getMax();
-        var hp = pokeB.hp;
+        if(move.priority>0) des.priority=true; else{des.priority=false}//Move has priority
+        var dmg = Calc.calculate(pokeB, pokeA, move, conditionsB, conditionsA, battle.conditions, battle.gen).getMax();
+        var hp = pokeA.hp;
         if (dmg === 0 || move.id === "struggle") {
-            res.immune.push(decisions[i]);
+            res.immune.push(des);
             continue;
         }
         var pc = dmg * 100 / hp;
-        debug("Move: " + move.name + " | Damage = " + dmg + " | Percent: " + pc);
+        debug("Enemy Move: " + move.name + " | Damage = " + dmg + " | Percent: " + pc);
         if (move.id === "fakeout") {
-            if (battle.self.active[0].helpers.sw === battle.turn || battle.self.active[0].helpers.sw === battle.turn - 1) {
-                if (TypeChart.getMultipleEff("Normal", pokeB.template.types, battle.gen, true, !!battle.conditions["inversebattle"]) >= 1) {
+            if (battle.foe.active[0].helpers.sw === battle.turn || battle.foe.active[0].helpers.sw === battle.turn - 1) {
+                if (TypeChart.getMultipleEff("Normal", pokeA.template.types, battle.gen, true, !!battle.conditions["inversebattle"]) >= 1) {
                     if (pc >= 90) {
-                        res.ohko.push(decisions[i]);
+                        res.ohko.push(des);
                     } else {
-                        res.thko.push(decisions[i]);
+                        res.thko.push(des);
                     }
                     res.total++;
                     continue;
                 }
             } else {
-                res.immune.push(decisions[i]);
+                res.immune.push(des);
                 continue;
             }
         }
         res.total++;
         if (pc >= 100) {
-            res.ohko.push(decisions[i]);
+            res.ohko.push(des);
         } else if (pc >= 50) {
-            res.thko.push(decisions[i]);
+            res.thko.push(des);
         } else if (pc >= 30) {
-            res.meh.push(decisions[i]);
+            res.meh.push(des);
         } else {
-            res.bad.push(decisions[i]);
+            res.bad.push(des);
         }
     }
     return res;
 };
 
-var getViableDamageMoves = exports.getViableDamageMoves = function (battle, decisions) {
+var getViableDamageMoves = exports.getViableDamageMoves = function (battle, decisions, pokeA, pokeB) {
 	var res = {
 		ohko: [], // +90% -> replace status moves
 		thko: [], // +50% -> No switch
@@ -618,9 +615,6 @@ var getViableDamageMoves = exports.getViableDamageMoves = function (battle, deci
 		immune: [],
 		total: 0
 	};
-	var sideId = 0; // Active, singles
-	var pokeA = battle.getCalcRequestPokemon(sideId, true);
-	var pokeB = suposeActiveFoe(battle);
 	var conditionsB = new Conditions({
 		side: battle.foe.side,
 		volatiles: battle.foe.active[0].volatiles,
@@ -639,7 +633,8 @@ var getViableDamageMoves = exports.getViableDamageMoves = function (battle, deci
 		}
 		var move = Data.getMove(battle.request.side.pokemon[0].moves[des.moveId]);
 		if (move.category !== "Physical" && move.category !== "Special") continue; // Status move
-		var dmg = Calc.calculate(pokeA, pokeB, move, conditionsA, conditionsB, battle.conditions, battle.gen).getMax();
+        if(move.priority>0) des.priority=true; else{des.priority=false} //Move has priority
+        var dmg = Calc.calculate(pokeA, pokeB, move, conditionsA, conditionsB, battle.conditions, battle.gen).getMax();
 		var hp = pokeB.hp;
 		if (dmg === 0 || move.id === "struggle") {
 			res.immune.push(decisions[i]);
@@ -677,7 +672,7 @@ var getViableDamageMoves = exports.getViableDamageMoves = function (battle, deci
 	return res;
 };
 
-function debugBestMove (bestSw, damageMoves, supportMoves) {
+function debugBestMove (bestSw, damageMoves, supportMoves,enemyMoves) {
 	debug("singles-eff.js#debugBestMove -- start");
 	debug("Best switch: " + (bestSw ? bestSw[0].poke : "none"));
     // debug("Damage Moves:");
@@ -702,31 +697,54 @@ function debugBestMove (bestSw, damageMoves, supportMoves) {
 		}
 		debug("Support Moves (" + i + ") -> " + tmp);
 	}
+    for (var i in enemyMoves) {
+        if (!enemyMoves[i] || !enemyMoves[i].length) continue;
+        tmp = [];
+        for (var j = 0; j < enemyMoves[i].length; j++) {
+            tmp.push(enemyMoves[i][j].name);
+        }
+        debug("Enemy Damage Moves (" + i + ") -> " + tmp);
+    }
 
+}
+
+var compareSpeeds = function (A, B){return (A !== B)? Number(A > B) : null};
+var isPriority  = function(move){return move[0].priority};
+var bestPrio = function(damageMoves){
+	var badmove = damageMoves.bad.find(isPriority);
+    var mehmove = damageMoves.meh.find(isPriority);
+    var tmove = damageMoves.thko.find(isPriority);
+    var omove = damageMoves.ohko.find(isPriority);
+    var best= omove | tmove | mehmove | badmove | false;
+    return best;
 }
 
 var getBestMove = exports.getBestMove = function (battle, decisions) {
 	var bestSW = exports.getBestSwitch(battle, decisions);
-	/** IMPROVE DECISION LOGIC HERE */
-	// var faster=
-	var damageMoves = getViableDamageMoves(battle, decisions);
-	var supportMoves = getViableSupportMoves(battle, decisions);
-	//get enemy damage moves
+
+    var pokeA = battle.getCalcRequestPokemon(0, true);
+    var pokeB = supposeActiveFoe(battle);
+	var imfaster= compareSpeeds(pokeA.stats.spe, pokeB.stats.spe);
+
+	var damageMoves = getViableDamageMoves(battle, decisions, pokeA, pokeB);
+	var supportMoves = getViableSupportMoves(battle, decisions, pokeA, pokeB);
+	var enemyMoves = getEnemyDamageMoves(battle, pokeA, pokeB);
 
 	var ev = evaluatePokemon(battle, 0);
 	var evNoMega = evaluatePokemon(battle, 0, true);
 
-	debugBestMove(bestSW, damageMoves, supportMoves);
+	debugBestMove(bestSW, damageMoves, supportMoves, enemyMoves);
+
 
 	/* Special switch cases */
 
 	var switchIfNoOption = false;
-	var pokeA = battle.getCalcRequestPokemon(0, true);
 	var conditionsA = new Conditions({
 		side: battle.self.side,
 		volatiles: battle.self.active[0].volatiles,
 		boosts: battle.self.active[0].boosts
 	});
+
 	if (bestSW) {
 		if (Calc.getHazardsDamage(pokeA, conditionsA, battle.gen, !!battle.conditions["inversebattle"]) > pokeA.hp) bestSW = null; //No switch if you die
 		if (conditionsA.volatiles["substitute"] && damageMoves.meh.length) bestSW = null;
@@ -734,10 +752,33 @@ var getBestMove = exports.getBestMove = function (battle, decisions) {
 		if (conditionsA.boosts["spa"] && conditionsA.boosts["spa"] < 1) switchIfNoOption = true;
 		if (conditionsA.boosts["atk"] && conditionsA.boosts["atk"] < 1) switchIfNoOption = true;
 		if (conditionsA.volatiles["perish1"] && bestSW) return bestSW;
+
 	}
 
-	/* Normal situations */
+	//Enemy can OHKO me
+    if(enemyMoves.ohko.length>0){ //Can OHKO me
+		if(imfaster){
+            if (damageMoves.ohko.length) {
+                if (supportMoves.sleepTalk) return supportMoves.sleepTalk;
+                return damageMoves.ohko[Math.floor(Math.random() * damageMoves.ohko.length)];
+            }
+            else{
+            	/*TODO: Logic for no OHKO but still faster, likely switch.*/
+            	if(bestSW) return bestSW;
+			}
+		}
+        else {
+			var priokill =  damageMoves.ohko.find(isPriority);
+			var prio = bestPrio;
+			if(priokill) return priokill;
+			else if(bestSW) return bestSW;
+			else if(prio) return prio;
+			//else just continue to normal situation
+		}
+		 /* TODO: Should check for Taunt and stuff here*/
+    }
 
+	/* Normal situations */
 	if (damageMoves.ohko.length) {
 		if (supportMoves.sleepTalk) return supportMoves.sleepTalk;
 		return damageMoves.ohko[Math.floor(Math.random() * damageMoves.ohko.length)];
